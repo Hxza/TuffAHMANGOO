@@ -239,6 +239,9 @@ namespace Locomotion
                 rightHandColliding = false;
             }
 
+            leftHandFollower.rotation = leftHandTransform.rotation;
+            rightHandFollower.rotation = rightHandTransform.rotation;
+            
             leftHandFollower.position = _lastLeftHandPosition;
             rightHandFollower.position = _lastRightHandPosition;
 
