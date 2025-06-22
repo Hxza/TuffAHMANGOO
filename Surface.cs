@@ -1,4 +1,4 @@
-﻿namespace GorillaLocomotion
+﻿namespace Locomotion
 {
     using UnityEngine;
 
