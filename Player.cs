@@ -34,7 +34,7 @@ namespace Locomotion
         public float defaultPrecision = 0.995f;
 
         private Vector3[] _velocityHistory;
-        private int _velocityIndex;
+        private int _velocityIndex = 0;
         private Vector3 _currentVelocity;
         private Vector3 _denormalizedVelocityAverage;
         private bool _jumpHandIsLeft;
@@ -102,21 +102,50 @@ namespace Locomotion
             var firstIterationLeftHand = Vector3.zero;
             var firstIterationRightHand = Vector3.zero;
 
+            var leftHandColliding = false;
+            var rightHandColliding = false;
+
             bodyCollider.transform.eulerAngles = new Vector3(0, headCollider.transform.eulerAngles.y, 0);
 
-            // checks left hand if colliding
+            //left hand
 
             var distanceTraveled = CurrentLeftHandPosition() - _lastLeftHandPosition + Vector3.down * (2f * 9.8f * Time.deltaTime * Time.deltaTime);
 
-            HandInteraction(ref firstIterationLeftHand, _lastLeftHandPosition, CurrentLeftHandPosition(),
-                wasLeftHandTouching, out var leftHandColliding, out var finalPosition);
-            
-            // checks right hand if colliding
+            if (IterativeCollisionSphereCast(_lastLeftHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out var finalPosition, true))
+            {
+                //this lets you stick to the position you touch, as long as you keep touching the surface this will be the zero point for that hand
+                if (wasLeftHandTouching)
+                {
+                    firstIterationLeftHand = _lastLeftHandPosition - CurrentLeftHandPosition();
+                }
+                else
+                {
+                    firstIterationLeftHand = finalPosition - CurrentLeftHandPosition();
+                }
+                _playerRigidBody.velocity = Vector3.zero;
+
+                leftHandColliding = true;
+            }
+
+            //right hand
 
             distanceTraveled = CurrentRightHandPosition() - _lastRightHandPosition + Vector3.down * (2f * 9.8f * Time.deltaTime * Time.deltaTime);
-            
-            HandInteraction(ref firstIterationRightHand, _lastRightHandPosition, CurrentRightHandPosition(),
-                wasRightHandTouching, out var rightHandColliding, out finalPosition);
+
+            if (IterativeCollisionSphereCast(_lastRightHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, true))
+            {
+                if (wasRightHandTouching)
+                {
+                    firstIterationRightHand = _lastRightHandPosition - CurrentRightHandPosition();
+                }
+                else
+                {
+                    firstIterationRightHand = finalPosition - CurrentRightHandPosition();
+                }
+
+                _playerRigidBody.velocity = Vector3.zero;
+
+                rightHandColliding = true;
+            }
             
             //average or add
 
@@ -215,36 +244,6 @@ namespace Locomotion
 
             wasLeftHandTouching = leftHandColliding;
             wasRightHandTouching = rightHandColliding;
-        }
-
-        /// <summary>
-        /// It checks if your hand is hitting something while moving, and if it is it finds out where the hand touched the surface,
-        /// stops player from sliding or moving and it updates the refrence point "firstInteraction" so you can "stick" to the surface as long as you're touching it.
-        /// </summary>
-        /// <param name="firstInteraction">Where the hand first touched the surface. This gets updated</param>
-        /// <param name="lastPosition">Where the hand was last frame</param>
-        /// <param name="currentPosition">Where the hand is currently</param>
-        /// <param name="wasTouching">If you where touching any surface last frame</param>
-        /// <param name="isColliding">Tells you if any collision happened during this frame</param>
-        private void HandInteraction(ref Vector3 firstInteraction, Vector3 lastPosition, Vector3 currentPosition, bool wasTouching, out bool isColliding, out Vector3 finalPosition)
-        {
-            var distanceTraveled = currentPosition - lastPosition + Vector3.down * (2f * 9.8f * Time.deltaTime * Time.deltaTime);
-
-            if (IterativeCollisionSphereCast(lastPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out var finalPos, true))
-            {
-                if (wasTouching)
-                    firstInteraction = lastPosition - CurrentLeftHandPosition();
-                else
-                    firstInteraction = finalPos - CurrentLeftHandPosition();
-                
-                _playerRigidBody.velocity = Vector3.zero;
-
-                isColliding = true;
-                finalPosition = finalPos;
-            }
-
-            isColliding = false;
-            finalPosition = Vector3.zero;
         }
         
         private bool IterativeCollisionSphereCast(Vector3 startPosition, float sphereRadius, Vector3 movementVector, float precision, out Vector3 endPosition, bool singleHand)
