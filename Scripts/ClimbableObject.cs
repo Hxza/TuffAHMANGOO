@@ -6,12 +6,12 @@ namespace Locomotion.Scripts
     {
         public void OnGrab()
         {
-            throw new System.NotImplementedException();
+            Debug.Log("Grabbed a climbable obj");
         }
 
         public void OnDrop()
         {
-            throw new System.NotImplementedException();
+            Debug.Log("Released a climbable obj");
         }
     }
 }

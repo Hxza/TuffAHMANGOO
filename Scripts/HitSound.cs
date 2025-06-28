@@ -13,7 +13,7 @@ namespace Locomotion.Scripts
         public AudioClip[] audioClips;
     }
     
-    [RequireComponent(typeof(AudioSource), typeof(SphereCollider))]
+    [RequireComponent(typeof(AudioSource))]
     public class HitSound : MonoBehaviour
     {
         [Header("Hit sound Config")]
@@ -34,8 +34,8 @@ namespace Locomotion.Scripts
         public float maxHapticStrength = 0.2f;
         public float hapticDuration = 0.1f;
         
-        private void OnTriggerEnter(Collider c) => HandCollision(c);
-        
+        private void OnCollisionEnter(Collision other)  => HandCollision(other.collider);
+
         /// <summary>
         /// Calculates velocity and connects all the haptic & audio together.
         /// </summary>
@@ -47,7 +47,7 @@ namespace Locomotion.Scripts
             var data = GetHitData(hitCollider);
             if (!data.physicMaterial || data.audioClips.Length == 0) return;
 
-            GetDeviceFromXRNode(hand);
+            Player.Instance.GetDeviceFromXRNode(hand, out _inputDevice);
             _inputDevice.TryGetFeatureValue(CommonUsages.deviceVelocity, out var deviceVelocity);
 
             
@@ -61,8 +61,9 @@ namespace Locomotion.Scripts
 
             var clip = data.audioClips[UnityEngine.Random.Range(0, data.audioClips.Length)];
             GetComponent<AudioSource>().PlayOneShot(clip, vol);
-            HapticImpulse(haptic, hapticDuration);
+            Player.Instance.HapticImpulse(hand == XRNode.LeftHand, haptic, hapticDuration);
         }
+        
         
         /// <summary>
         /// Tries to find a match of PhysicMaterial between "hitCollider" and the hitData. If it finds a match, it returns that.
@@ -79,26 +80,6 @@ namespace Locomotion.Scripts
             return new HitData();
         }
 
-        /// <summary>
-        /// This sends a haptic impulse to the input device (controller) with inputs as the haptic strength and duration the haptic is going to last.
-        /// </summary>
-        /// <param name="hapticstrength"></param>
-        /// <param name="hapticduration"></param>
-        private void HapticImpulse(float hapticstrength, float hapticduration)
-        {
-            if(!_inputDevice.isValid) GetDeviceFromXRNode(hand);
-            
-            _inputDevice.SendHapticImpulse(0, hapticstrength, hapticduration);
-        }
-
-        /// <summary>
-        /// Gets the input device from the xrnode
-        /// </summary>
-        /// <param name="xrNode"></param>
-        private void GetDeviceFromXRNode(XRNode xrNode)
-        {
-            if (_inputDevice.isValid) return;
-            _inputDevice = InputDevices.GetDeviceAtXRNode(xrNode);
-        }
+        
     }
 }
